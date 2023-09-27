@@ -19,6 +19,7 @@ cod_version <- "2023"
 pied_de_page <- "Carte Zôdio (version géographique septembre2023) "
 
 # le fond de cartes
+
 fond_de_carte1 <- providers$OpenStreetMap
 fond_de_carte2 <- providers$Esri.WorldImagery
 # fond_de_carte3 <- providers$Stamen.TonerLite
@@ -83,6 +84,7 @@ ens_autre <- c(
   "LECLERC"
 )
 
+#######################################################
 # les logos
 liste_logos <- bibliotheque_logos(26, 22, 17)
 # Zodio (enseigne principale)
@@ -90,14 +92,13 @@ carte <- carte %>%
   addMarkers(
     data = fr_poi_zo_ouverts_shp,
     group = ens_princ # nom qui sera affiché dans la légende
-    , popup = ~ paste0(
-      "Enseigne principale",
-      "<br>",
-      ens_princ,
-      "-",
-      lib_mag,
-      "<br>",
-      substr(qlm, 0, 5)
+    , popup = ~ paste0("Enseigne principale",
+                        "<br>",
+                        ens_princ,
+                        "-",
+                        lib_mag,
+                        "<br>",
+                        substr(qlm, 0, 5)
     ) # s'affiche au clic
     , icon = ~ liste_logos[cod_ens] # ajout du logo
     , label = ~ paste0(
@@ -108,23 +109,24 @@ carte <- carte %>%
     , labelOptions = labelOptions(
       noHide = F # si True affiche l'info-bulle sur la carte
       , textOnly = F # si True alors pas de box
-      # ,style = color # couleur du texte
-      , style = list(color = "black") # couleur du texte
+      , style = list(color = "black",
+                     "fontWeight" = 900) # couleur du texte
       , direction = "right" # direction de l'info-bulles (bottom, left, right, top, center)
-      , fontsize = "13px", ,
-      offset = c(0, -10) # font size = 13px
+      , fontsize = "13px"
+      , offset = c(0, -10) # font size = 13px
       , "opacity" = 0.75
     )
   ) %>%
   addCircles(
     data = fr_poi_zo_ouverts_shp,
-    color = color,
+    color = "black",
     radius = ~1000,
     fillOpacity = 0,
     label = ~ paste0(
       ens_princ,
       "-",
-      lib_mag
+      lib_mag,
+      "- Superficie fixe"
     ),
     group = ~ paste0("CERCLE_",
       ens_princ,
@@ -139,32 +141,42 @@ carte <- carte %>%
 # Cercles
 ########################################
 for (mag in ens) {
-  color <- ifelse(mag %in% ens_sec,
-    "red",
-    "green"
-  )
   if (mag != ens_princ) {
-    conc <- fr_poi_mag_conc_shp[fr_poi_mag_conc_shp$cod_ens_conc == mag, ]
-    carte <- carte %>%
-      addMarkers(
-        data = conc,
-        group = mag # nom qui sera affiché dans la légende
-        , popup = ~ paste0(
-          ifelse(mag %in% ens_sec,
-            "Enseigne secondaire ",
-            "Autre enseigne"
-          ),
-          "<br>",
-          mag,
-          "-",
-          lib_vil,
-          "<br>",
-          cod_pst,
-          "<br>",
-          nbr_surf_tot_mag,
-          "m²"
+  
+    color <- ifelse(mag %in% ens_sec,
+                    "red",
+                    "green"
+    )
+    if (mag == "LECLERC"){
+      conc  = fr_poi_mag_conc_shp[fr_poi_mag_conc_shp$cod_ens_conc == "CENTRE E LECLERC",]
+    }
+    else{
+      conc = fr_poi_mag_conc_shp[fr_poi_mag_conc_shp$cod_ens_conc == mag,]
+    }
+    
+    logo = conc$cod_ens_conc[1]
+    if (logo == "CENTRE E LECLERC"){
+      logo = "LECLERC"
+    }
+    carte <- addMarkers(
+        map = carte
+        ,data = conc
+        ,group = mag # nom qui sera affiché dans la légende
+        , popup = ~ paste0(ifelse(mag %in% ens_sec,
+                              "Enseigne secondaire ",
+                              "Autre enseigne"
+                            ),
+                            "<br>",
+                            cod_ens_conc,
+                            "-",
+                            lib_vil,
+                            "<br>",
+                            cod_pst,
+                            "<br>",
+                            nbr_surf_tot_mag,
+                            "m²"
         ) # s'affiche au clic
-        , icon = ~ liste_logos[cod_ens_conc] # ajout du logo
+        , icon = ~liste_logos[logo]
         , label = ~ paste0(
           mag,
           " ",
@@ -173,25 +185,26 @@ for (mag in ens) {
         labelOptions = labelOptions(
           noHide = F # si True affiche l'info-bulle sur la carte
           , textOnly = F # si True alors pas de box
-          # ,style = color # couleur du texte
-          , style = list(color = color) # couleur du texte
+          , style = list(color = color,
+                         "fontWeight" = 900) # couleur du texte
           , direction = "right" # direction de l'info-bulles (bottom, left, right, top, center)
-          , fontsize = "13px", ,
-          offset = c(0, -10) # font size = 13px
+          , fontsize = "13px"
+          , offset = c(0, -10) # font size = 13px
           , "opacity" = 0.75
         )
       ) %>%
       addCircles(
         data = conc,
         color = color,
-        radius = ~ nbr_surf_tot_mag * 15,
+        radius = ~ sqrt((nbr_surf_tot_mag * 15) / (2 * pi)),
         fillOpacity = 0,
         label = ~ paste0(
           mag,
           "-",
           lib_vil,
           "-",
-          nbr_surf_tot_mag
+          nbr_surf_tot_mag,
+          "m²( Superficie x 15)"
         ),
         group = ~ paste0("CERCLE_",
           mag,
